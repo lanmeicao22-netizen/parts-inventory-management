@@ -1,0 +1,237 @@
+const STORAGE_KEY = 'parts_inventory_management_v1';
+
+const defaultParts = [
+  { id: crypto.randomUUID(), code: 'P-1001', name: '电机轴承', category: '机械件', unit: '件', stock: 28 },
+  { id: crypto.randomUUID(), code: 'P-2001', name: 'PLC模块', category: '电子件', unit: '台', stock: 12 },
+  { id: crypto.randomUUID(), code: 'P-3001', name: '液压油封', category: '液压件', unit: '套', stock: 36 }
+];
+
+const defaultRecords = [
+  { id: crypto.randomUUID(), time: new Date().toISOString(), partCode: 'P-1001', partName: '电机轴承', type: 'in', qty: 10, note: '采购入库' },
+  { id: crypto.randomUUID(), time: new Date().toISOString(), partCode: 'P-2001', partName: 'PLC模块', type: 'out', qty: 2, note: '维修领用' }
+];
+
+const state = loadState();
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+  if (!saved) {
+    return {
+      parts: defaultParts,
+      records: defaultRecords
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(saved);
+    return {
+      parts: Array.isArray(parsed.parts) ? parsed.parts : defaultParts,
+      records: Array.isArray(parsed.records) ? parsed.records : defaultRecords
+    };
+  } catch (error) {
+    return {
+      parts: defaultParts,
+      records: defaultRecords
+    };
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function updateStats() {
+  const totalParts = state.parts.length;
+  const totalStock = state.parts.reduce((sum, part) => sum + Number(part.stock || 0), 0);
+  const recentRecords = state.records.length;
+
+  document.getElementById('totalParts').textContent = totalParts;
+  document.getElementById('totalStock').textContent = totalStock;
+  document.getElementById('recentRecords').textContent = recentRecords;
+}
+
+function renderMovementOptions() {
+  const select = document.getElementById('movementPart');
+  select.innerHTML = '';
+
+  state.parts.forEach((part) => {
+    const option = document.createElement('option');
+    option.value = part.id;
+    option.textContent = `${part.code} - ${part.name}（库存 ${part.stock}）`;
+    select.appendChild(option);
+  });
+
+  if (!state.parts.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = '暂无配件，请先新增';
+    option.disabled = true;
+    option.selected = true;
+    select.appendChild(option);
+  }
+}
+
+function renderPartsTable(filterText = '') {
+  const tbody = document.getElementById('partsTableBody');
+
+  const filtered = state.parts.filter((part) => {
+    const text = `${part.code} ${part.name}`.toLowerCase();
+    return text.includes(filterText.toLowerCase());
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-text">暂无匹配配件</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered
+    .map(
+      (part) => `
+        <tr>
+          <td>${part.code}</td>
+          <td>${part.name}</td>
+          <td>${part.category}</td>
+          <td>${part.unit}</td>
+          <td>${part.stock}</td>
+          <td>
+            <button class="small-btn" data-action="remove" data-id="${part.id}">删除</button>
+          </td>
+        </tr>
+      `
+    )
+    .join('');
+
+  document.querySelectorAll('[data-action="remove"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.dataset.id;
+      state.parts = state.parts.filter((part) => part.id !== id);
+      state.records = state.records.filter((record) => record.partId !== id || record.partId === undefined);
+      saveState();
+      renderAll();
+    });
+  });
+}
+
+function renderRecordsTable() {
+  const tbody = document.getElementById('recordsTableBody');
+
+  if (!state.records.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-text">暂无出入库记录</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = state.records
+    .slice()
+    .reverse()
+    .map(
+      (record) => `
+        <tr>
+          <td>${new Date(record.time).toLocaleString()}</td>
+          <td>${record.partName}</td>
+          <td><span class="badge ${record.type === 'in' ? 'in' : 'out'}">${record.type === 'in' ? '入库' : '出库'}</span></td>
+          <td>${record.qty}</td>
+          <td>${record.note || '—'}</td>
+        </tr>
+      `
+    )
+    .join('');
+}
+
+function renderAll() {
+  updateStats();
+  renderMovementOptions();
+  renderPartsTable(document.getElementById('searchInput').value);
+  renderRecordsTable();
+}
+
+function addPart(event) {
+  event.preventDefault();
+
+  const code = document.getElementById('partCode').value.trim();
+  const name = document.getElementById('partName').value.trim();
+  const category = document.getElementById('partCategory').value;
+  const unit = document.getElementById('partUnit').value.trim() || '件';
+  const stock = Number(document.getElementById('partStock').value || 0);
+
+  if (!code || !name) {
+    return;
+  }
+
+  const duplicate = state.parts.some((part) => part.code.toLowerCase() === code.toLowerCase());
+  if (duplicate) {
+    alert('配件编码已存在，请勿重复添加');
+    return;
+  }
+
+  state.parts.push({
+    id: crypto.randomUUID(),
+    code,
+    name,
+    category,
+    unit,
+    stock
+  });
+
+  saveState();
+  event.target.reset();
+  document.getElementById('partUnit').value = '件';
+  document.getElementById('partStock').value = 0;
+  renderAll();
+}
+
+function addMovement(event) {
+  event.preventDefault();
+
+  const partId = document.getElementById('movementPart').value;
+  const type = document.getElementById('movementType').value;
+  const qty = Number(document.getElementById('movementQty').value || 0);
+  const note = document.getElementById('movementNote').value.trim();
+
+  if (!partId || qty <= 0) {
+    return;
+  }
+
+  const part = state.parts.find((item) => item.id === partId);
+  if (!part) {
+    return;
+  }
+
+  if (type === 'out' && qty > part.stock) {
+    alert(`出库数量不能大于当前库存：${part.stock}`);
+    return;
+  }
+
+  if (type === 'in') {
+    part.stock += qty;
+  } else {
+    part.stock -= qty;
+  }
+
+  state.records.push({
+    id: crypto.randomUUID(),
+    time: new Date().toISOString(),
+    partId: part.id,
+    partCode: part.code,
+    partName: part.name,
+    type,
+    qty,
+    note: note || (type === 'in' ? '入库登记' : '出库登记')
+  });
+
+  saveState();
+  event.target.reset();
+  document.getElementById('movementQty').value = 1;
+  renderAll();
+}
+
+function bindEvents() {
+  document.getElementById('partForm').addEventListener('submit', addPart);
+  document.getElementById('stockForm').addEventListener('submit', addMovement);
+  document.getElementById('searchInput').addEventListener('input', (event) => {
+    renderPartsTable(event.target.value);
+  });
+}
+
+bindEvents();
+renderAll();

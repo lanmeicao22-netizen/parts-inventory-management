@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>配件出入库管理</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">仓储管理</p>
+          <h1>配件出入库管理</h1>
+        </div>
+        <div class="status-pill">在线库存系统</div>
+      </header>
+
+      <section class="stats-panel">
+        <div class="stat-card accent-blue">
+          <span>配件总数</span>
+          <strong id="totalParts">0</strong>
+        </div>
+        <div class="stat-card accent-green">
+          <span>总库存</span>
+          <strong id="totalStock">0</strong>
+        </div>
+        <div class="stat-card accent-orange">
+          <span>最近出入库</span>
+          <strong id="recentRecords">0</strong>
+        </div>
+      </section>
+
+      <main class="content-grid">
+        <section class="panel">
+          <h2>新增配件</h2>
+          <form id="partForm" class="stack-form">
+            <div class="form-row two-col">
+              <label>
+                <span>配件编码</span>
+                <input type="text" id="partCode" placeholder="例如 P-1001" required />
+              </label>
+              <label>
+                <span>配件名称</span>
+                <input type="text" id="partName" placeholder="例如 电机轴承" required />
+              </label>
+            </div>
+
+            <div class="form-row two-col">
+              <label>
+                <span>类别</span>
+                <select id="partCategory">
+                  <option value="机械件">机械件</option>
+                  <option value="电子件">电子件</option>
+                  <option value="液压件">液压件</option>
+                  <option value="五金件">五金件</option>
+                  <option value="耗材">耗材</option>
+                </select>
+              </label>
+              <label>
+                <span>单位</span>
+                <input type="text" id="partUnit" value="件" />
+              </label>
+            </div>
+
+            <div class="form-row one-col">
+              <label>
+                <span>初始库存</span>
+                <input type="number" id="partStock" min="0" value="0" />
+              </label>
+            </div>
+
+            <button type="submit" class="primary-btn">添加配件</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>出入库登记</h2>
+          <form id="stockForm" class="stack-form">
+            <label>
+              <span>选择配件</span>
+              <select id="movementPart" required></select>
+            </label>
+
+            <div class="form-row two-col">
+              <label>
+                <span>操作类型</span>
+                <select id="movementType">
+                  <option value="in">入库</option>
+                  <option value="out">出库</option>
+                </select>
+              </label>
+              <label>
+                <span>数量</span>
+                <input type="number" id="movementQty" min="1" value="1" required />
+              </label>
+            </div>
+
+            <label>
+              <span>备注说明</span>
+              <input type="text" id="movementNote" placeholder="例如采购入库、领用出库" />
+            </label>
+
+            <button type="submit" class="primary-btn success-btn">确认记录</button>
+          </form>
+        </section>
+      </main>
+
+      <section class="panel table-panel">
+        <div class="section-head">
+          <h2>库存列表</h2>
+          <input type="search" id="searchInput" placeholder="搜索编码或名称" />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>编码</th>
+                <th>名称</th>
+                <th>类别</th>
+                <th>单位</th>
+                <th>库存</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="partsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>出入库记录</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>配件</th>
+                <th>类型</th>
+                <th>数量</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
